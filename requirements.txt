@@ -1,0 +1,11 @@
+django
+opencv-python
+numpy
+tensorflow
+pandas
+pillow
+opencv-python-headless
+djangorestframework 
+keras-facenet 
+mtcnn
+scipy
