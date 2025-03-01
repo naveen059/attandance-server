@@ -1,0 +1,14 @@
+django
+opencv-python
+numpy
+tensorflow
+pandas
+pillow
+opencv-python-headless
+djangorestframework
+django-cors-headers
+django-serverless
+whitenoise
+keras-facenet 
+mtcnn
+scipy

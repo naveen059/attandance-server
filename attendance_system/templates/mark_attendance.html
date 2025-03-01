@@ -1,0 +1,62 @@
+<html>
+<head>
+    <title>Mark Attendance</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-200 flex items-center justify-center min-h-screen">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-96 text-center">
+        <h2 class="text-xl font-bold mb-4">Mark Attendance</h2>
+        <video id="video" class="w-full rounded-md" autoplay></video>
+        <canvas id="canvas" style="display:none;"></canvas>
+        <form id="attendanceForm" enctype="multipart/form-data" class="mt-4 space-y-4">
+            {% csrf_token %}
+            <button type="button" id="capture" class="w-full bg-green-500 text-white py-2 rounded-md hover:bg-green-600">Capture Image</button>
+            <input type="file" id="image" name="image" accept="image/*" style="display:none;" required>
+            <button type="submit" class="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600">Mark Attendance</button>
+        </form>
+    </div>
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const captureButton = document.getElementById('capture');
+        const imageInput = document.getElementById('image');
+
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+            .then(stream => { video.srcObject = stream; })
+            .catch(err => { console.error("Error accessing webcam:", err); });
+
+            captureButton.onclick = function() {
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Convert canvas to a data URL (Base64)
+            let imageData = canvas.toDataURL("image/jpeg");
+
+            // Convert Base64 to a file object
+            fetch(imageData)
+                .then(res => res.blob())
+                .then(blob => {
+                    const file = new File([blob], "capture.jpg", { type: "image/jpeg" });
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    imageInput.files = dataTransfer.files;
+                })
+                .catch(err => console.error("Error processing image:", err));
+        };
+
+
+        document.getElementById('attendanceForm').onsubmit = async function(event) {
+            event.preventDefault();
+            let formData = new FormData(this);
+            let response = await fetch('/api/mark_attendance/', {
+                method: 'POST',
+                body: formData
+            });
+            let result = await response.json();
+            alert(result.message || result.error);
+        };
+    </script>
+</body>
+</html>
