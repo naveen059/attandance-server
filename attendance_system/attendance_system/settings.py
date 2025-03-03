@@ -20,6 +20,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '.vercel.app', 'attandance-server-pjiy.onrender.com']
 
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880
+
 
 # Application definition
 
