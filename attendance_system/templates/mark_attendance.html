@@ -6,6 +6,10 @@
 <body class="bg-gray-200 flex items-center justify-center min-h-screen">
     <div class="bg-white p-6 rounded-lg shadow-lg w-96 text-center">
         <h2 class="text-xl font-bold mb-4">Mark Attendance</h2>
+        <!-- Success and Error Message Containers -->
+        <div id="successMessage" class="hidden p-3 mb-4 bg-green-100 text-green-800 rounded-md"></div>
+        <div id="errorMessage" class="hidden p-3 mb-4 bg-red-100 text-red-800 rounded-md"></div>
+
         <video id="video" class="w-full rounded-md" autoplay></video>
         <canvas id="canvas" style="display:none;"></canvas>
         <form id="attendanceForm" enctype="multipart/form-data" class="mt-4 space-y-4">
@@ -20,12 +24,16 @@
         const canvas = document.getElementById('canvas');
         const captureButton = document.getElementById('capture');
         const imageInput = document.getElementById('image');
+        const successMessage = document.getElementById('successMessage');
+        const errorMessage = document.getElementById('errorMessage');
 
+        // Access the webcam
         navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
             .then(stream => { video.srcObject = stream; })
             .catch(err => { console.error("Error accessing webcam:", err); });
 
-            captureButton.onclick = function() {
+        // Capture image from the webcam
+        captureButton.onclick = function() {
             const context = canvas.getContext('2d');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
@@ -46,16 +54,34 @@
                 .catch(err => console.error("Error processing image:", err));
         };
 
-
+        // Handle form submission
         document.getElementById('attendanceForm').onsubmit = async function(event) {
             event.preventDefault();
+            successMessage.classList.add('hidden'); // Hide success message
+            errorMessage.classList.add('hidden');   // Hide error message
+
             let formData = new FormData(this);
-            let response = await fetch('/api/mark_attendance/', {
-                method: 'POST',
-                body: formData
-            });
-            let result = await response.json();
-            alert(result.message || result.error);
+            try {
+                let response = await fetch('/api/mark_attendance/', {
+                    method: 'POST',
+                    body: formData
+                });
+                let result = await response.json();
+
+                if (response.ok) {
+                    // Show success message
+                    successMessage.textContent = result.message;
+                    successMessage.classList.remove('hidden');
+                } else {
+                    // Show error message
+                    errorMessage.textContent = result.error || "Something went wrong.";
+                    errorMessage.classList.remove('hidden');
+                }
+            } catch (err) {
+                console.error("Error submitting form:", err);
+                errorMessage.textContent = "Failed to mark attendance. Please try again.";
+                errorMessage.classList.remove('hidden');
+            }
         };
     </script>
 </body>

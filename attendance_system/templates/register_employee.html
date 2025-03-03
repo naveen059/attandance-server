@@ -6,84 +6,135 @@
     <title>Register Employee</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-200 flex items-center justify-center min-h-screen">
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
     <div class="bg-white p-6 rounded-lg shadow-lg w-96">
-        <h2 class="text-xl font-bold mb-4 text-center">Employee Registration</h2>
+        <h2 class="text-2xl font-bold mb-4 text-center text-blue-600">Employee Registration</h2>
         <form id="registerForm" enctype="multipart/form-data" class="space-y-4">
             {% csrf_token %}
-            <!-- Name Field -->
             <div>
                 <label for="name" class="block text-sm font-medium text-gray-700">Name:</label>
                 <input type="text" id="name" name="name" required class="w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300">
             </div>
-            <!-- Employee ID Field -->
             <div>
                 <label for="employee_id" class="block text-sm font-medium text-gray-700">Employee ID:</label>
                 <input type="text" id="employee_id" name="employee_id" required class="w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300">
             </div>
-            <!-- Department Field -->
             <div>
                 <label for="department" class="block text-sm font-medium text-gray-700">Department:</label>
                 <input type="text" id="department" name="department" required class="w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300">
             </div>
-            <!-- Designation Field -->
             <div>
                 <label for="designation" class="block text-sm font-medium text-gray-700">Designation:</label>
                 <input type="text" id="designation" name="designation" required class="w-full p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-300">
             </div>
-            <!-- Image Upload Field -->
             <div>
                 <label for="image" class="block text-sm font-medium text-gray-700">Upload Image:</label>
-                <input type="file" id="image" name="image" accept="image/*" required class="w-full p-2 border border-gray-300 rounded-md">
+                <input type="file" id="image" name="image" accept="image/*" class="w-full p-2 border border-gray-300 rounded-md">
             </div>
-            <!-- Submit Button -->
+            <div class="text-center text-gray-500">OR</div>
+            <div class="flex justify-center">
+                <button type="button" id="captureBtn" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600">Open Camera</button>
+            </div>
+            <div class="flex justify-center mt-2">
+                <video id="video" class="hidden w-full rounded-md border border-gray-300" autoplay></video>
+            </div>
+            <div class="flex justify-center mt-2">
+                <button type="button" id="snapBtn" class="hidden bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">Capture Image</button>
+            </div>
+            <canvas id="canvas" class="hidden"></canvas>
+            <div id="message" class="hidden p-2 text-center rounded-md"></div>
             <button type="submit" class="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600">Register</button>
         </form>
     </div>
     <script>
+        const captureBtn = document.getElementById('captureBtn');
+        const snapBtn = document.getElementById('snapBtn');
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const imageInput = document.getElementById('image');
+        let stream;
+
+        // Open camera when "Open Camera" button is clicked
+        captureBtn.addEventListener('click', async () => {
+            try {
+                video.classList.remove('hidden');
+                snapBtn.classList.remove('hidden');
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                alert('Failed to access camera. Please ensure you have granted the necessary permissions.');
+            }
+        });
+
+        // Capture image when "Capture Image" button is clicked
+        snapBtn.addEventListener('click', () => {
+            if (stream) {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                canvas.getContext('2d').drawImage(video, 0, 0);
+                video.classList.add('hidden');
+                snapBtn.classList.add('hidden');
+                stream.getTracks().forEach(track => track.stop());
+                imageInput.disabled = true; // Disable file input after capturing
+                alert('Image captured successfully!');
+            }
+        });
+
+        // Handle form submission
         document.getElementById('registerForm').onsubmit = async function(event) {
             event.preventDefault();
-            
-            // Get the CSRF token from the form
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-
-            // Create FormData object
             let formData = new FormData(this);
-
-            // Convert FormData to JSON
             let jsonData = {
-                emp_id: formData.get('employee_id'),  // Map 'employee_id' to 'emp_id'
+                emp_id: formData.get('employee_id'),
                 name: formData.get('name'),
                 department: formData.get('department'),
                 designation: formData.get('designation')
             };
-
-            // Add the JSON data to a new FormData object
             let apiFormData = new FormData();
             apiFormData.append('data', JSON.stringify(jsonData));
-            apiFormData.append('image', formData.get('image')); // Append the image file
 
+            if (canvas.width > 0) {
+                canvas.toBlob(blob => {
+                    apiFormData.append('image', blob, 'captured.jpg');
+                    sendFormData(apiFormData, csrfToken);
+                });
+            } else if (imageInput.files.length > 0) {
+                apiFormData.append('image', imageInput.files[0]);
+                sendFormData(apiFormData, csrfToken);
+            } else {
+                alert('Please upload an image or capture a face.');
+            }
+        };
+
+        // Send form data to the server
+        async function sendFormData(apiFormData, csrfToken) {
+            let messageBox = document.getElementById('message');
             try {
                 let response = await fetch('/api/register_employee/', {
                     method: 'POST',
                     body: apiFormData,
                     headers: {
-                        'X-CSRFToken': csrfToken  // Include the CSRF token in the headers
+                        'X-CSRFToken': csrfToken
                     }
                 });
-
                 let result = await response.json();
-                
+                messageBox.classList.remove('hidden');
                 if (response.ok) {
-                    alert(result.message);
+                    messageBox.textContent = result.message;
+                    messageBox.classList.add('bg-green-200', 'text-green-800');
                 } else {
-                    alert(result.error || 'Something went wrong');
+                    messageBox.textContent = result.error || 'Something went wrong';
+                    messageBox.classList.add('bg-red-200', 'text-red-800');
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('Failed to register employee');
+                messageBox.textContent = 'Failed to register employee';
+                messageBox.classList.remove('hidden');
+                messageBox.classList.add('bg-red-200', 'text-red-800');
             }
-        };
+        }
     </script>
 </body>
 </html>

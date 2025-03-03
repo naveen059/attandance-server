@@ -5,7 +5,10 @@ tensorflow
 pandas
 pillow
 opencv-python-headless
-djangorestframework 
+djangorestframework
+django-cors-headers
+django-serverless
+whitenoise
 keras-facenet 
 mtcnn
 scipy
