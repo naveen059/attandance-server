@@ -13,7 +13,10 @@ import json
 import logging
 from PIL import Image
 import io
+import os
 from django.utils.timezone import now
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1' 
 
 # Initialize FaceNet embedder
 embedder = FaceNet()
