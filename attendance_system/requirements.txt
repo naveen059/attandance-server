@@ -1,8 +1,10 @@
 django
 opencv-python
 numpy
+gunicorn
 tensorflow
 pandas
+psycopg2-binary
 pillow
 opencv-python-headless
 djangorestframework
